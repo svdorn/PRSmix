@@ -8,23 +8,25 @@ combine_PRS(
   pheno_file,
   covariate_file,
   score_files_list,
-  allPGS_list = NULL,
   trait_specific_score_file,
   pheno_name,
   isbinary,
   out,
+  allPGS_list = NULL,
   metascore = NULL,
   liabilityR2 = F,
   IID_pheno = "IID",
   covar_list = c("age", "sex", paste0("PC", 1:10)),
-  cat_covar = NULL,
+  cat_covar_list = NULL,
   ncores = 1,
   is_extract_adjSNPeff = F,
   original_beta_files_list = NULL,
   train_size_list = NULL,
+  train_ids_file = NULL,
   training_result_file = NULL,
   power_thres_list = c(0.95),
   pval_thres_list = c(0.05),
+  nfold_cv = 3,
   read_pred_training = FALSE,
   read_pred_testing = FALSE,
   debug = F
@@ -60,6 +62,8 @@ combine_PRS(
 \item{original_beta_files_list}{The vector of directories to SNP effect sizes used to compute original PRSs (DEFAULT = FALSE)}
 
 \item{train_size_list}{A vector of training sample sizes. If NULL, all 80\% of the samples will be used (DEFAULT = NULL)}
+
+\item{train_ids_file}{A file containing the iids to train}
 
 \item{power_thres_list}{A vector of power thresholds to select scores (DEFAULT = 0.95)}
 

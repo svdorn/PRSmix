@@ -11,7 +11,8 @@ eval_single_PRS(
   covar_list,
   isbinary = F,
   liabilityR2 = F,
-  alpha = 0.05
+  alpha = 0.05,
+  regression_output = F
 )
 }
 \arguments{

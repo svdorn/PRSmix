@@ -4,17 +4,17 @@
 \alias{make_dummy_columns}
 \title{Make dummy columns for categorical variables}
 \usage{
-make_dummy_columns(filename, cat_covar_list)
+make_dummy_columns(df, cat_covar_list)
 }
 \arguments{
-\item{filename}{File name with variables}
+\item{df}{Dataframe with variables}
 
-\item{cat_covar_list}{Categorical variables}
+\item{cat_covar_list}{A vector of categorical variables}
 }
 \value{
-This function will generate dummy columns for categorical variables
+This function will generate a list containing a dataframe and its dummy columns for categorical variables
 \itemize{
-\item Return data frame with dummy variables of categorical variables
+\item Return a list containing a dataframe and its dummy columns for categorical variables
 }
 }
 \description{

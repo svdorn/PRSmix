@@ -10,7 +10,10 @@ eval_multiple_PRS(
   covar_list,
   liabilityR2 = F,
   alpha = 0.05,
-  isbinary = F
+  isbinary = F,
+  ncores = 1,
+  regression_output = F,
+  pheno = "trait"
 )
 }
 \arguments{
