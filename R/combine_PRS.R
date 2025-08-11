@@ -157,6 +157,11 @@ combine_PRS = function(
 	train_df = pheno_prs_cov[train_idx,]
 	test_df = pheno_prs_cov[-train_idx,]
 
+	cat("\nnrow(train_df):", nrow(train_df))
+	cat("\nnrow(test_df):", nrow(train_df))
+
+	print(out)
+
 	if (!isbinary) {
 		train_df$trait = irnt(train_df$trait)
 		test_df$trait = irnt(test_df$trait)
