@@ -129,6 +129,8 @@ combine_PRS = function(
 	pheno = pheno[,idx]
 	colnames(pheno) = c("IID", "trait")
 
+	print(out)
+
 	writeLines("--- Merging Phenotype and PRS files ---")
 
 	pheno_prs = merge(pheno, all_scores, by="IID")
