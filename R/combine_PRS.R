@@ -134,6 +134,7 @@ combine_PRS = function(
 	pheno_prs = merge(pheno, all_scores, by="IID")
 	pheno_prs_cov = merge(pheno_prs, basic_data, by.x="IID", by.y=IID_pheno)
 	pheno_prs_cov = pheno_prs_cov[which(!is.na(pheno_prs_cov$trait)),]
+	print(head(pheno_prs_cov))
 
 	#######################
 	
@@ -143,7 +144,7 @@ combine_PRS = function(
 	#######################
 
 	if (!is.null(train_ids_file)) {
-		train_iids <- data.table::fread(train_ids_file)$IID
+		train_iids <- fread(train_ids_file)$IID
 		train_idx <- match(train_iids, pheno_prs_cov$IID)
 	}
 
