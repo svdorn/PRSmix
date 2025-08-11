@@ -756,9 +756,7 @@ combine_PRS = function(
 
 			fwrite(timedf, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_time_PRSmixPlus.txt"), row.names=F, sep="\t", quote=F)
 			
-
+		}
 	}
 	writeLines("Finished")
 	return(0)
-
-}
