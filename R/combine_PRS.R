@@ -158,9 +158,6 @@ combine_PRS = function(
         train_idx <- match(train_iids, pheno_prs_cov$IID)
     }
 
-	print(head(train_idx))
-	print(length(train_idx))
-
 	out_save = out
 
 	for (train_size in train_size_list) {
