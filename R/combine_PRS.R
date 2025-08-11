@@ -153,11 +153,6 @@ combine_PRS = function(
 		writeLines("Using custom data split!")
 	}
 
-	print(train_ids_file)
-	train_iids <- fread(train_ids_file)
-	print(head(train_iids))
-	train_idx <- match(train_iids$IID, pheno_prs_cov$IID)
-
 	out_save = out
 
 	for (train_size in train_size_list) {
@@ -170,7 +165,7 @@ combine_PRS = function(
 		if (isbinary) fwrite(as.data.frame(table(pheno_prs_cov$trait)), paste0(out, "_case_counts.txt"), row.names=F, sep="\t", quote=F)
 		
 		set.seed(1)
-		#train_idx = sample(1:nrow(pheno_prs_cov), train_size)
+		train_idx = sample(1:nrow(pheno_prs_cov), train_size)
 		
 		train_df = pheno_prs_cov[train_idx,]
 		test_df = pheno_prs_cov[-train_idx,]
