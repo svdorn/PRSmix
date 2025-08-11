@@ -17,6 +17,7 @@
 #' @param is_extract_adjSNPeff TRUE if extract adjSNPeff, FALSE if only calculate the combined PRS. May consume extended memory (DEFAULT = FALSE)
 #' @param original_beta_files_list The vector of directories to SNP effect sizes used to compute original PRSs (DEFAULT = FALSE)
 #' @param train_size_list A vector of training sample sizes. If NULL, all 80% of the samples will be used (DEFAULT = NULL)
+#' @param train_ids_file A file containing the iids to train
 #' @param power_thres_list A vector of power thresholds to select scores (DEFAULT = 0.95)
 #' @param pval_thres_list A vector of P-value thresholds to select scores (DEFAULT = 0.05)
 #' @param read_pred_training TRUE if PRSs were assessed in the training set was already run and can be read from file (DEFAULT = FALSE)
@@ -60,6 +61,7 @@ combine_PRS = function(
 	is_extract_adjSNPeff = F,
 	original_beta_files_list = NULL,
 	train_size_list = NULL,
+	train_ids_file = NULL,
 	training_result_file = NULL,
 	power_thres_list = c(0.95),
 	pval_thres_list = c(0.05),
@@ -151,6 +153,14 @@ combine_PRS = function(
 		writeLines("Using custom data split!")
 	}
 
+	if (!is.null(train_ids_file)) {
+        train_iids <- fread(train_ids_file)$IID
+        train_idx <- match(train_iids, pheno_prs_cov$IID)
+    }
+
+	print(head(train_idx))
+	print(length(train_idx))
+
 	out_save = out
 
 	for (train_size in train_size_list) {
@@ -163,7 +173,7 @@ combine_PRS = function(
 		if (isbinary) fwrite(as.data.frame(table(pheno_prs_cov$trait)), paste0(out, "_case_counts.txt"), row.names=F, sep="\t", quote=F)
 		
 		set.seed(1)
-		train_idx = sample(1:nrow(pheno_prs_cov), train_size)
+		#train_idx = sample(1:nrow(pheno_prs_cov), train_size)
 		
 		train_df = pheno_prs_cov[train_idx,]
 		test_df = pheno_prs_cov[-train_idx,]
