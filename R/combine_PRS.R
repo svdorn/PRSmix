@@ -16,7 +16,6 @@
 #' @param ncores Number of CPU cores for parallel processing (DEFAULT = 1)
 #' @param is_extract_adjSNPeff TRUE if extract adjSNPeff, FALSE if only calculate the combined PRS. May consume extended memory (DEFAULT = FALSE)
 #' @param original_beta_files_list The vector of directories to SNP effect sizes used to compute original PRSs (DEFAULT = FALSE)
-#' @param train_size_list A vector of training sample sizes. If NULL, all 80% of the samples will be used (DEFAULT = NULL)
 #' @param train_ids_file A file containing the iids to train
 #' @param power_thres_list A vector of power thresholds to select scores (DEFAULT = 0.95)
 #' @param pval_thres_list A vector of P-value thresholds to select scores (DEFAULT = 0.05)
@@ -60,7 +59,6 @@ combine_PRS = function(
 	ncores = 1,
 	is_extract_adjSNPeff = F,
 	original_beta_files_list = NULL,
-	train_size_list = NULL,
 	train_ids_file = NULL,
 	training_result_file = NULL,
 	power_thres_list = c(0.95),
@@ -155,8 +153,6 @@ combine_PRS = function(
 
 	out_save = out
 
-		
-	if (!null_train_size_list) out = paste0(out_save, "_train.", train_size)
 	if (isbinary) fwrite(as.data.frame(table(pheno_prs_cov$trait)), paste0(out, "_case_counts.txt"), row.names=F, sep="\t", quote=F)
 	
 	set.seed(1)
