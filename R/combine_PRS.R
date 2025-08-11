@@ -153,6 +153,14 @@ combine_PRS = function(
 		writeLines("Using custom data split!")
 	}
 
+	if (!is.null(train_ids_file)) {
+		train_iids <- data.table::fread(train_ids_file)
+		train_idx  <- unique(stats::na.omit(match(train_iids$IID, pheno_prs_cov$IID)))
+		if (!length(train_idx)) stop("No training IIDs matched pheno_prs_cov$IID")
+	} else {
+		writeLines("Not using custom data split!")
+	}
+
 	out_save = out
 
 	for (train_size in train_size_list) {
@@ -165,7 +173,7 @@ combine_PRS = function(
 		if (isbinary) fwrite(as.data.frame(table(pheno_prs_cov$trait)), paste0(out, "_case_counts.txt"), row.names=F, sep="\t", quote=F)
 		
 		set.seed(1)
-		train_idx = sample(1:nrow(pheno_prs_cov), train_size)
+		#train_idx = sample(1:nrow(pheno_prs_cov), train_size)
 		
 		train_df = pheno_prs_cov[train_idx,]
 		test_df = pheno_prs_cov[-train_idx,]
