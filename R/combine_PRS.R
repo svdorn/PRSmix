@@ -148,6 +148,10 @@ combine_PRS = function(
 		train_idx <- match(train_iids, pheno_prs_cov$IID)
 	}
 
+	print("HERE")
+
+	print(out)
+
 	out_save = out
 						
 	if (isbinary) fwrite(as.data.frame(table(pheno_prs_cov$trait)), paste0(out, "_case_counts.txt"), row.names=F, sep="\t", quote=F)
