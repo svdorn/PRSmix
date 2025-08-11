@@ -153,10 +153,10 @@ combine_PRS = function(
 		writeLines("Using custom data split!")
 	}
 
-	if (!is.null(train_ids_file)) {
-        train_iids <- fread(train_ids_file)$IID
-        train_idx <- match(train_iids, pheno_prs_cov$IID)
-    }
+	print(train_ids_file)
+	train_iids <- fread(train_ids_file)
+	print(head(train_iids))
+	train_idx <- match(train_iids$IID, pheno_prs_cov$IID)
 
 	out_save = out
 
