@@ -33,7 +33,7 @@
 #' @importFrom caret train trainControl
 #' @importFrom utils head read.table
 #' @export
-combine_PRS = function(
+combine_PRS_v2 = function(
   pheno_file,
   covariate_file = NULL,
   score_files_list,
