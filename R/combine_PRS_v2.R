@@ -433,7 +433,7 @@ combine_PRS_v2 = function(
 
         res_lm1_summary <- res_lm1
         res_lm1_summary$pgs <- "PRSmix"
-        pred_acc_test_trait_summary_out <- dplyr::bind_rows(res_lm1, pred_acc_test_trait_summary)
+        pred_acc_test_trait_summary_out <- dplyr::bind_rows(res_lm1, pred_acc_test_trait_summary) %>% arrange(desc(R2))
         data.table::fwrite(pred_acc_test_trait_summary_out,
                            paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_test_summary_traitPRS_withPRSmix.txt"),
                            row.names = FALSE, sep = "\t", quote = FALSE)
