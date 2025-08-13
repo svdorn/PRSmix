@@ -67,42 +67,127 @@ combine_PRS_v2 = function(
   rr   <- function(x, d = 3) round(x, d)
 
   # Replace your eval_single_PRS_nocov with this version
-    eval_single_PRS_nocov <- function(df, pheno = "trait", prs_name, isbinary, alpha = 0.05) {
-    x <- df[[prs_name]]
-    y <- df[[pheno]]
-    use <- stats::complete.cases(x, y)
-    x <- x[use]; y <- y[use]
+    # --- replace this helper ---
+    eval_single_PRS_nocov <- function(df,
+                                    pheno = "trait",
+                                    prs_name,
+                                    isbinary = FALSE,
+                                    liabilityR2 = FALSE,
+                                    alpha = 0.05,
+                                    regression_output = FALSE) {
+    # match original: rename column to "trait"
+    colnames(df)[which(colnames(df) == pheno)] <- "trait"
+
+    # vectors
+    x <- suppressWarnings(as.numeric(df[[prs_name]]))
+    y <- suppressWarnings(as.numeric(df[["trait"]]))
+    keep <- stats::complete.cases(x, y)
+    x <- x[keep]; y <- y[keep]
+    N <- length(x)
 
     if (!length(x)) {
-        return(data.frame(pgs = prs_name, R2 = NA_real_, cor = NA_real_, n = 0L,
-                        pval = NA_real_, power = NA_real_, stringsAsFactors = FALSE))
+        out <- data.frame(pgs = prs_name, R2 = NA_real_, R2_out = NA_character_,
+                        se = NA_real_, lowerCI = NA_real_, upperCI = NA_real_,
+                        pval = NA_real_, power = NA_real_)
+        if (regression_output) {
+        out$coef_regression <- NA_real_
+        out$se_regression   <- NA_real_
+        out$pval_regression <- NA_real_
+        }
+        return(out)
     }
 
-    r <- suppressWarnings(stats::cor(x, y))
-    n <- length(x)
+    # R2 from correlation
+    r  <- suppressWarnings(stats::cor(x, y))
+    r  <- if (is.finite(r)) r else 0
+    R2 <- r^2
 
-    if (!is.finite(r)) {
-        p <- NA_real_; pow <- NA_real_
-    } else {
-        dfree <- n - 2
-        # correlation test t-stat
-        tval <- r * sqrt(dfree / (1 - r^2))
-        # two-sided p-value
-        p <- 2 * stats::pt(-abs(tval), df = dfree)
-        # test power at alpha (two-sided) under noncentral t with ncp = tval
-        tcrit <- stats::qt(1 - alpha/2, df = dfree)
-        pow <- stats::pt(-tcrit, df = dfree, ncp = tval) + (1 - stats::pt(tcrit, df = dfree, ncp = tval))
+    # liability-scale (same place as original)
+    if (isbinary && liabilityR2) {
+        K <- mean(y, na.rm = TRUE)  # assumes 0/1 coding
+        thr <- stats::qnorm(1 - K)
+        R2 <- R2 * K * (1 - K) / (stats::dnorm(thr)^2)
     }
 
-    data.frame(pgs = prs_name, R2 = r^2, cor = r, n = n, pval = p, power = pow,
-                stringsAsFactors = FALSE)
+    # power (same formula as PRSMix)
+    R2c <- pmin(pmax(R2, 0), 1 - 1e-12)
+    NCP <- N * R2c / (1 - R2c)
+    z   <- stats::qnorm(1 - alpha/2)
+    power <- 1 - (stats::pnorm(z - sqrt(NCP)) - stats::pnorm(-z - sqrt(NCP)))
+
+    # SE/CI/pval (same as PRSMix)
+    vv <- (4 * R2c * (1 - R2c)^2 * (N - 2)^2) / ((N^2 - 1) * (N + 3))
+    se <- sqrt(vv)
+    lower_r2 <- R2 - 1.97 * se
+    upper_r2 <- R2 + 1.97 * se
+    pval <- stats::pchisq((R2 / se)^2, df = 1, lower.tail = FALSE)
+    r2_out <- paste0(rr(R2, 3), " (", rr(lower_r2, 3), "-", rr(upper_r2, 3), ")")
+
+    out <- data.frame(pgs = prs_name, R2 = R2, R2_out = r2_out,
+                        se = se, lowerCI = lower_r2, upperCI = upper_r2,
+                        pval = pval, power = power)
+
+    if (regression_output) {
+        # optional: PRS-only model (no covariates), matching original return shape
+        zprs <- as.numeric(scale(x))
+        fit <- if (isbinary) stats::glm(y ~ zprs, family = "binomial") else stats::lm(y ~ zprs)
+        s <- summary(fit)
+        out$coef_regression <- s$coefficients[2, 1]
+        out$se_regression   <- s$coefficients[2, 2]
+        out$pval_regression <- s$coefficients[2, 4]
     }
 
+    out
+    }
 
-  eval_multiple_PRS_nocov <- function(df, pgs_vec, isbinary, ncores = 1L) {
-    res <- lapply(pgs_vec, function(p) eval_single_PRS_nocov(df, pheno = "trait", prs_name = p, isbinary = isbinary))
-    do.call(rbind, res)
-  }
+    # --- replace this helper ---
+    eval_multiple_PRS_nocov <- function(df,
+                                        pgs_vec,
+                                        isbinary = FALSE,
+                                        ncores = 1L,
+                                        liabilityR2 = FALSE,
+                                        alpha = 0.05,
+                                        regression_output = FALSE,
+                                        pheno = "trait") {
+    # match original: rename column to "trait"
+    colnames(df)[which(colnames(df) == pheno)] <- "trait"
+
+    if (isbinary) {
+        writeLines("Case - control numbers:")
+        print(table(df$trait))
+    }
+
+    # drop missing PRS columns
+    missing_idx <- which(!pgs_vec %in% colnames(df))
+    if (length(missing_idx) > 0) {
+        writeLines(paste0(length(missing_idx), " scores not found in data; skipping"))
+        pgs_vec <- pgs_vec[-missing_idx]
+    }
+
+    # optional: drop zero-variance PRS to avoid NA cor
+    if (length(pgs_vec)) {
+        v <- sapply(pgs_vec, function(p) stats::var(df[[p]], na.rm = TRUE))
+        pgs_vec <- pgs_vec[v > 0]
+    }
+
+    # parallel map (no covariates)
+    res_list <- parallel::mclapply(seq_along(pgs_vec), function(i) {
+        if (i %% 100 == 0) writeLines(paste0("Evaluated ", i, " scores"))
+        eval_single_PRS_nocov(
+        df, pheno = "trait",
+        prs_name = pgs_vec[i],
+        isbinary = isbinary,
+        liabilityR2 = liabilityR2,
+        alpha = alpha,
+        regression_output = regression_output
+        )
+    }, mc.cores = ncores)
+
+    out <- do.call(rbind, res_list)
+    out <- out[order(out$R2, decreasing = TRUE), ]
+    out
+    }
+
 
   # ---------------------- read scores & pheno ----------------------
   writeLines("--- Reading all polygenic risk scores ---")
