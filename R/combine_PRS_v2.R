@@ -169,10 +169,10 @@ combine_PRS_v2 = function(
   train_df <- pheno_prs[train_idx, ]
   test_df  <- pheno_prs[-train_idx, ]
 
-  if (!isbinary) {
-    train_df$trait <- irnt(train_df$trait)
-    test_df$trait  <- irnt(test_df$trait)
-  }
+  #if (!isbinary) {
+  #  train_df$trait <- irnt(train_df$trait)
+  #  test_df$trait  <- irnt(test_df$trait)
+  #}
 
   data.table::fwrite(train_df[, c("IID", "trait")], paste0(out, "_train_df.txt"),
                      row.names = FALSE, quote = FALSE, sep = "\t")
