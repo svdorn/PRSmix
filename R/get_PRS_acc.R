@@ -144,3 +144,149 @@ eval_multiple_PRS = function(data_df, pgs_list, covar_list, liabilityR2=F, alpha
 	return(pred_acc_test)
 }
 
+
+######################## Get mixing weights with validation set
+
+#' Evaluate prediction accuracy of a single PRS (no covariates; R2 = cor^2)
+#'
+#' @param data_df Data to assess prediction accuracy
+#' @param prs_name Name of the PRS column
+#' @param covar_list Ignored (kept for compatibility)
+#' @param isbinary TRUE if binary phenotype
+#' @param liabilityR2 TRUE to convert observed-scale R2 to liability scale (binary only)
+#' @param alpha Significance level for power (default 0.05)
+#' @param regression_output If TRUE, also returns regression coef/se/pval from a PRS-only model
+#' @return Data.frame with pgs, R2 (cor^2), CI/se, pval (from cor test), and power
+#' @export
+eval_single_PRS_v3 = function(data_df, pheno = "trait", prs_name, covar_list,
+                           isbinary = FALSE, liabilityR2 = FALSE, alpha = 0.05,
+                           regression_output = FALSE) {
+
+  # Standardize column name like upstream code expects
+  colnames(data_df)[which(colnames(data_df) == pheno)] = "trait"
+
+  # Pull vectors and ensure numeric
+  x <- suppressWarnings(as.numeric(data_df[[prs_name]]))
+  y <- suppressWarnings(as.numeric(data_df[["trait"]]))
+  use <- stats::complete.cases(x, y)
+
+  if (!any(use)) {
+    out <- data.frame(pgs = prs_name, R2 = NA_real_, R2_out = NA_character_,
+                      se = NA_real_, lowerCI = NA_real_, upperCI = NA_real_,
+                      pval = NA_real_, power = NA_real_)
+    if (regression_output) {
+      out$coef_regression <- NA_real_
+      out$se_regression   <- NA_real_
+      out$pval_regression <- NA_real_
+    }
+    return(out)
+  }
+
+  x <- x[use]; y <- y[use]
+  N <- length(x)
+
+  # ---- R2 by correlation ----
+  r  <- suppressWarnings(stats::cor(x, y))
+  r  <- if (is.finite(r)) r else 0
+  R2 <- r^2
+
+  # Optional liability transform for binary phenotypes
+  if (isbinary && liabilityR2) {
+    K <- mean(y, na.rm = TRUE)             # prevalence in sample (expects 0/1 coding)
+    # Convert observed-scale R2 to liability scale (Lee et al.)
+    thr <- stats::qnorm(1 - K)
+    R2 <- R2 * K * (1 - K) / (stats::dnorm(thr)^2)
+  }
+
+  # ---- p-value for correlation (two-sided) ----
+  if (abs(r) < 1 && N > 2) {
+    tval <- r * sqrt((N - 2) / (1 - r^2))
+    pval <- 2 * stats::pt(-abs(tval), df = N - 2)
+  } else {
+    pval <- NA_real_
+  }
+
+  # ---- "power" definition kept as in PRSMix (from R2 via NCP) ----
+  R2_clamped <- pmin(pmax(R2, 0), 1 - 1e-12)
+  NCP <- N * R2_clamped / (1 - R2_clamped)
+  z   <- stats::qnorm(1 - alpha/2)
+  power <- 1 - (stats::pnorm(z - sqrt(NCP)) - stats::pnorm(-z - sqrt(NCP)))
+
+  # ---- SE and CI for R2 (same formula as PRSMix) ----
+  vv <- (4 * R2_clamped * (1 - R2_clamped)^2 * (N - 2)^2) /
+        ((N^2 - 1) * (N + 3))
+  se <- sqrt(vv)
+  lower_r2 <- R2 - 1.97 * se
+  upper_r2 <- R2 + 1.97 * se
+  r2_out   <- paste0(rr(R2, 3), " (", rr(lower_r2, 3), "-", rr(upper_r2, 3), ")")
+
+  out <- data.frame(
+    pgs     = prs_name,
+    R2      = R2,
+    R2_out  = r2_out,
+    se      = se,
+    lowerCI = lower_r2,
+    upperCI = upper_r2,
+    pval    = pval,
+    power   = power
+  )
+
+  if (regression_output) {
+    # For completeness: PRS-only model on scaled PRS (matches prior API shape)
+    z <- as.numeric(scale(x))
+    if (isbinary) {
+      fit <- stats::glm(y ~ z, family = "binomial")
+    } else {
+      fit <- stats::lm(y ~ z)
+    }
+    s <- summary(fit)
+    out$coef_regression <- s$coefficients[2, 1]
+    out$se_regression   <- s$coefficients[2, 2]
+    out$pval_regression <- s$coefficients[2, 4]
+  }
+
+  return(out)
+}
+
+
+#' Evaluate multiple PRSs (no covariates; uses cor^2)
+#'
+#' @export
+eval_multiple_PRS_v3 = function(data_df, pgs_list, covar_list, liabilityR2 = FALSE,
+                             alpha = 0.05, isbinary = FALSE, ncores = 1,
+                             regression_output = FALSE, pheno = "trait") {
+
+  colnames(data_df)[which(colnames(data_df) == pheno)] = "trait"
+
+  if (isbinary) {
+    writeLines("Case - control numbers:")
+    print(table(data_df$trait))
+  }
+
+  # Keep only PRS columns that exist and vary
+  missing_idx <- which(!pgs_list %in% colnames(data_df))
+  if (length(missing_idx) > 0) {
+    writeLines(paste0(length(missing_idx), " scores not found in data; skipping"))
+    pgs_list <- pgs_list[-missing_idx]
+  }
+
+  # Parallel eval (covariates ignored)
+  tmp <- parallel::mclapply(seq_along(pgs_list), function(prs_i) {
+    if (prs_i %% 100 == 0) writeLines(paste0("Evaluated ", prs_i, " scores"))
+    prs_name <- pgs_list[prs_i]
+    eval_single_PRS(
+      data_df = data_df,
+      pheno   = "trait",
+      prs_name = prs_name,
+      covar_list = NULL,                # ignored
+      isbinary = isbinary,
+      liabilityR2 = liabilityR2,
+      alpha = alpha,
+      regression_output = regression_output
+    )
+  }, mc.cores = ncores)
+
+  pred_acc_test <- do.call(rbind, tmp)
+  pred_acc_test <- pred_acc_test[order(pred_acc_test$R2, decreasing = TRUE), ]
+  return(pred_acc_test)
+}
