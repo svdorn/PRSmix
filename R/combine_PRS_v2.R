@@ -377,11 +377,11 @@ combine_PRS_v2 = function(
     for (pval_thres in pval_thres_list) {
 
       writeLines(paste0("P = ", pval_thres))
-      writeLines(paste0("Power (R2) >= ", power_thres))
+      writeLines(paste0("Power >= ", power_thres))
       writeLines("PRSmix:")
 
       topprs <- pred_acc_train_trait_summary %>%
-        dplyr::filter(pval <= pval_thres & R2 >= power_thres) %>%
+        dplyr::filter(pval <= pval_thres & power >= power_thres) %>%
         dplyr::pull(pgs)
       topprs <- intersect(topprs, colnames(train_df))
       start_time <- Sys.time()
