@@ -66,24 +66,38 @@ combine_PRS_v2 = function(
   irnt <- function(x) return(qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x))))
   rr   <- function(x, d = 3) round(x, d)
 
-  eval_single_PRS_nocov <- function(df, pheno = "trait", prs_name, isbinary, alpha = 0.05) {
+  # Replace your eval_single_PRS_nocov with this version
+    eval_single_PRS_nocov <- function(df, pheno = "trait", prs_name, isbinary, alpha = 0.05) {
     x <- df[[prs_name]]
     y <- df[[pheno]]
     use <- stats::complete.cases(x, y)
     x <- x[use]; y <- y[use]
+
     if (!length(x)) {
-      return(data.frame(pgs = prs_name, R2 = NA_real_, cor = NA_real_, n = 0L, pval = NA_real_, power = NA_real_))
+        return(data.frame(pgs = prs_name, R2 = NA_real_, cor = NA_real_, n = 0L,
+                        pval = NA_real_, power = NA_real_, stringsAsFactors = FALSE))
     }
+
     r <- suppressWarnings(stats::cor(x, y))
     n <- length(x)
+
     if (!is.finite(r)) {
-      p <- NA_real_
+        p <- NA_real_; pow <- NA_real_
     } else {
-      tval <- r * sqrt((n - 2) / (1 - r^2))
-      p <- 2 * stats::pt(-abs(tval), df = n - 2)
+        dfree <- n - 2
+        # correlation test t-stat
+        tval <- r * sqrt(dfree / (1 - r^2))
+        # two-sided p-value
+        p <- 2 * stats::pt(-abs(tval), df = dfree)
+        # test power at alpha (two-sided) under noncentral t with ncp = tval
+        tcrit <- stats::qt(1 - alpha/2, df = dfree)
+        pow <- stats::pt(-tcrit, df = dfree, ncp = tval) + (1 - stats::pt(tcrit, df = dfree, ncp = tval))
     }
-    data.frame(pgs = prs_name, R2 = r^2, cor = r, n = n, pval = p, power = r^2, stringsAsFactors = FALSE)
-  }
+
+    data.frame(pgs = prs_name, R2 = r^2, cor = r, n = n, pval = p, power = pow,
+                stringsAsFactors = FALSE)
+    }
+
 
   eval_multiple_PRS_nocov <- function(df, pgs_vec, isbinary, ncores = 1L) {
     res <- lapply(pgs_vec, function(p) eval_single_PRS_nocov(df, pheno = "trait", prs_name = p, isbinary = isbinary))
