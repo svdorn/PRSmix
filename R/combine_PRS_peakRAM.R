@@ -62,8 +62,6 @@ combine_PRS_peakRAM = function(
 
   options(datatable.fread.datatable = FALSE)
 
-  ram <- peakRAM({
-
   # ------------------------- helpers (new) -------------------------
   irnt <- function(x) return(qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x))))
   rr   <- function(x, d = 3) round(x, d)
