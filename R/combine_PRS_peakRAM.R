@@ -444,7 +444,6 @@ combine_PRS_peakRAM = function(
         data.table::fwrite(timedf, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_time_PRSmix.txt"),
                             row.names = FALSE, sep = "\t", quote = FALSE)
       })
-      writeLines(ram)
       data.table::fwrite(ram, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_peakRAM_PRSmix.txt"),
                          row.names = FALSE, sep = "\t", quote = FALSE)
 
