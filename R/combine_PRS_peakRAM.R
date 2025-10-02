@@ -444,8 +444,16 @@ combine_PRS_peakRAM = function(
         data.table::fwrite(timedf, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_time_PRSmix.txt"),
                             row.names = FALSE, sep = "\t", quote = FALSE)
       })
-      write.table(ram, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_peakRAM_PRSmix.txt"),
-                         row.names = FALSE, sep = "\t", quote = FALSE)
+      ram <- as.data.frame(ram)                 # ensure data.frame
+      stopifnot(is.numeric(ram$Peak_RAM_Used_MiB),
+                is.numeric(ram$Total_RAM_Used_MiB))
+
+      data.table::fwrite(
+        ram,
+        file = "peakRAM_results.tsv",
+        sep = "\t",
+        quote = FALSE
+      )
 
       # --------------------------- PRSmix+ ---------------------------
       writeLines("PRSmix+:")
