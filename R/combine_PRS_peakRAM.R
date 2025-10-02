@@ -99,7 +99,7 @@ combine_PRS_peakRAM = function(
     }
 
 
-  eval_multiple_PRS_nocov <- function(df, pgs_vec, isbinary, ncores = 1L) {
+  eval_multiple_PRS_nocov <- function(df, pgs_vec, isbinary, ncores = 1) {
     res <- lapply(pgs_vec, function(p) eval_single_PRS_nocov(df, pheno = "trait", prs_name = p, isbinary = isbinary))
     do.call(rbind, res)
   }
@@ -168,11 +168,6 @@ combine_PRS_peakRAM = function(
 
   train_df <- pheno_prs[train_idx, ]
   test_df  <- pheno_prs[-train_idx, ]
-
-  #if (!isbinary) {
-  #  train_df$trait <- irnt(train_df$trait)
-  #  test_df$trait  <- irnt(test_df$trait)
-  #}
 
   data.table::fwrite(train_df[, c("IID", "trait")], paste0(out, "_train_df.txt"),
                      row.names = FALSE, quote = FALSE, sep = "\t")
@@ -449,6 +444,7 @@ combine_PRS_peakRAM = function(
         data.table::fwrite(timedf, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_time_PRSmix.txt"),
                             row.names = FALSE, sep = "\t", quote = FALSE)
       })
+      writeLines(ram)
       data.table::fwrite(ram, paste0(out, "_power.", power_thres, "_pthres.", pval_thres, "_peakRAM_PRSmix.txt"),
                          row.names = FALSE, sep = "\t", quote = FALSE)
 
